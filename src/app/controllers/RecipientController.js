@@ -38,7 +38,8 @@ class RecipientController {
 
   async update(req, res) {
     const { name } = req.body;
-    const recipient = await Recipient.findByPk(req.recipientId);
+    const { id } = req.params;
+    const recipient = await Recipient.findByPk(id);
 
     if (name && name !== recipient.name) {
       const recipientExists = await Recipient.findOne({ where: { name } });
@@ -48,7 +49,7 @@ class RecipientController {
       }
     }
 
-    const { id, city, state, zip_code } = await recipient.update(req.body);
+    const { city, state, zip_code } = await recipient.update(req.body);
 
     return res.json({
       id,
