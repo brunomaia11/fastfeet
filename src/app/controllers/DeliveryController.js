@@ -1,8 +1,11 @@
 import * as Yup from 'yup';
+import { parseISO, getHours } from 'date-fns';
 import Delivery from '../models/Delivery';
 import Deliveryman from '../models/Deliveryman';
 import Recipient from '../models/Recipient';
 import File from '../models/File';
+import Queue from '../../lib/Queue';
+import DeliveryDetailMail from '../jobs/DeliveryDetailMail';
 
 class DeliveryController {
   async index(req, res) {
@@ -57,6 +60,34 @@ class DeliveryController {
       req.body
     );
 
+    const delivery = await Delivery.findByPk(id, {
+      attributes: ['id', 'product'],
+      include: [
+        {
+          model: Deliveryman,
+          as: 'deliveryman',
+          attributes: ['name', 'email'],
+        },
+        {
+          model: Recipient,
+          as: 'recipient',
+          attributes: [
+            'name',
+            'street',
+            'number',
+            'complement',
+            'state',
+            'city',
+            'zip_code',
+          ],
+        },
+      ],
+    });
+
+    await Queue.add(DeliveryDetailMail.key, {
+      delivery,
+    });
+
     return res.json({
       id,
       product,
@@ -75,6 +106,26 @@ class DeliveryController {
     }
 
     const delivery = await Delivery.findByPk(req.params.id);
+
+    if (!delivery) {
+      return res.status(400).json({
+        error: 'No delivery were found',
+      });
+    }
+
+    /**
+     * Data inicio deve ser entre 08:00 e 18:00
+     */
+    const { start_date } = req.body;
+    if (start_date) {
+      // ADICIONAR DIFERENCA TIMEZONE
+      const startHour = getHours(parseISO(start_date)) + 3;
+      if (startHour < 8 || startHour > 18) {
+        return res.status(401).json({
+          error: 'Delivery can only be made between 08:00 and 18:00',
+        });
+      }
+    }
 
     const { id, product, recipient_id, deliveryman_id } = await delivery.update(
       req.body

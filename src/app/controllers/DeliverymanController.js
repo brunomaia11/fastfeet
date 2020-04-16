@@ -1,6 +1,7 @@
 import * as Yup from 'yup';
 import Deliveryman from '../models/Deliveryman';
 import File from '../models/File';
+/* import Notification from '../schemas/Notification'; */
 
 class DeliverymanController {
   async index(req, res) {
@@ -18,6 +19,11 @@ class DeliverymanController {
       limit: 20,
       offset: (page - 1) * 20,
     });
+
+    /* await Notification.create({
+      content: `teste`,
+      user: 1,
+    }); */
 
     return res.json(deliveryman);
   }
